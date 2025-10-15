@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Data Area Ideas</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin: 20px; color: #111; }
+    header { display:flex; gap:12px; align-items:center; margin-bottom:20px; }
+    input[type="search"] { padding:8px 10px; font-size:16px; width:360px; border:1px solid #ddd; border-radius:6px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+    .card { background:#fff; border:1px solid #e6e6e6; border-radius:8px; padding:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
+    .meta { font-size:12px; color:#666; margin-bottom:6px; }
+    .title { font-weight:600; margin:6px 0; }
+    .badge { display:inline-block; padding:3px 8px; font-size:12px; border-radius:999px; background:#f0f4ff; color:#2a4bd7; margin-right:6px; }
+    ul { padding-left:18px; margin:6px 0; }
+    .muted { color:#666; font-size:13px; }
+    #status { margin-left:auto; font-size:13px; color:#666; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0; font-size:20px">Data Area Ideas</h1>
+    <input id="search" type="search" placeholder="Search area, description, skill..." aria-label="Search ideas" />
+    <div id="status">Loading…</div>
+  </header>
+
+  <main>
+    <section id="list" class="grid" aria-live="polite"></section>
+  </main>
+
+  <script>
+    const STATUS = document.getElementById('status');
+    const LIST = document.getElementById('list');
+    const SEARCH = document.getElementById('search');
+
+    let ideas = [];
+
+    function setStatus(text) {
+      STATUS.textContent = text;
+    }
+
+    function render(items) {
+      LIST.innerHTML = '';
+      if (!items.length) {
+        LIST.innerHTML = '<p class="muted">No ideas match your search.</p>';
+        return;
+      }
+      for (const it of items) {
+        const el = document.createElement('article');
+        el.className = 'card';
+        el.innerHTML = `
+          <div class="meta"><span class="badge">${it.difficulty}</span> <span class="muted">${it.id}</span></div>
+          <div class="title">${escapeHtml(it.area)}</div>
+          <div class="muted">${escapeHtml(it.short_description)}</div>
+          <div style="margin-top:8px;">
+            <strong>Use cases:</strong>
+            <div class="muted">${escapeHtml((it.typical_use_cases || []).join(', '))}</div>
+          </div>
+          <div style="margin-top:8px;">
+            <strong>Starter project:</strong>
+            <div class="muted">${escapeHtml(it.starter_project || '')}</div>
+          </div>
+          <div style="margin-top:8px;">
+            <strong>Skills:</strong>
+            <div class="muted">${escapeHtml((it.required_skills || []).join(', '))}</div>
+          </div>
+        `;
+        LIST.appendChild(el);
+      }
+    }
+
+    function escapeHtml(s = '') {
+      return String(s)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;');
+    }
+
+    function matchesQuery(item, q) {
+      if (!q) return true;
+      q = q.toLowerCase();
+      const fields = [
+        item.area,
+        item.short_description,
+        (item.typical_use_cases || []).join(' '),
+        (item.required_skills || []).join(' '),
+        item.starter_project || ''
+      ].join(' ').toLowerCase();
+      return fields.includes(q);
+    }
+
+    function applyFilter() {
+      const q = SEARCH.value.trim();
+      const filtered = ideas.filter(i => matchesQuery(i, q));
+      render(filtered);
+      setStatus(`${filtered.length} shown`);
+    }
+
+    // Fetch JSON file (expects data_areas.json next to this HTML)
+    fetch('data_areas.json', {cache: 'no-store'})
+      .then(resp => {
+        if (!resp.ok) throw new Error('Failed to fetch JSON: ' + resp.status);
+        return resp.json();
+      })
+      .then(data => {
+        ideas = Array.isArray(data) ? data : [];
+        setStatus(`${ideas.length} ideas loaded`);
+        render(ideas);
+      })
+      .catch(err => {
+        console.error(err);
+        setStatus('Error loading data');
+        LIST.innerHTML = '<p class="muted">Could not load ideas. Ensure <code>data_areas.json</code> is present and served from the same folder.</p>';
+      });
+
+    SEARCH.addEventListener('input', () => applyFilter());
+    SEARCH.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { SEARCH.value = ''; applyFilter(); }
+    });
+  </script>
+</body>
+</html>
