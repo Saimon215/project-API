@@ -1,43 +1,90 @@
-<!-- // -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>bc apps</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+      h1 { margin-bottom: 10px; }
+      ul { padding-left: 18px; }
+      li { margin: 8px 0; }
+      .name { font-weight: 700; }
+      .desc { color: #444; margin-left: 6px; }
+    </style>
 </head>
 <body>
 
-    <h1>Dr. Barry's Krazy Web App Idea Emporium</h1>
+    <h1>App ideas</h1>
 
-    <!-- a list of me app ideas. -->
-
-    <ul id="appIdeas">
-        Campus Connect / Class Q&A board with upvotes and instructor answers.</li>
-    </ul>
+    <ul id="appIdeas"></ul>
 
 <script>
-//js fetch API to get the app ideas from a json file
+// Primary fetch URL
+const FETCH_URL = 'https://barrycumbie.github.io/redesigned-giggle-fetchAPI/appIdeas.json';
 
-fetch('https://barrycumbie.github.io/redesigned-giggle-fetchAPI/appIdeas.json').then(response => response.json())
-    .then(data => {
+// Local fallback data (18 ideas)
+const fallbackIdeas = [
+  { name: "Micro-Goal Tracker", description: "Track tiny daily habits and streaks with minimal friction." },
+  { name: "Local Skills Marketplace", description: "Connect people offering short, on-demand local skills and bookings." },
+  { name: "Pocket Interview Prep", description: "Randomized interview questions, timed practice, and feedback." },
+  { name: "Smart Grocery Planner", description: "Meal-based shopping lists that optimize for pantry and sales." },
+  { name: "Passive Expense Monitor", description: "Auto-tag transactions and surface unusual charges." },
+  { name: "Micro-Learning Streaks", description: "3–5 minute daily lessons with spaced repetition." },
+  { name: "Neighborhood Commute Swap", description: "Local ride-share for short commutes with trusted neighbor profiles." },
+  { name: "Quiet Hours Focus Tool", description: "Block distracting apps/sites during scheduled focus windows." },
+  { name: "Tiny Charity Matcher", description: "Match donors to micro-impact projects based on interests." },
+  { name: "AR Measure & Note", description: "AR tape-measure that saves annotated photos and dimensions." },
+  { name: "Mental Health Check-in Bot", description: "Daily guided check-ins with trend visualization." },
+  { name: "B2B Onboarding Checklist System", description: "Shareable, trackable onboarding playbooks for CSMs." },
+  { name: "Voice-First Notes with Smart Summaries", description: "Record meetings, transcribe and auto-summarize action items." },
+  { name: "Circular Fashion Swap", description: "Local clothing swapping/renting for eco-conscious shoppers." },
+  { name: "Kid-Friendly Coding Playground", description: "Visual block-based coding with device integration for kids." },
+  { name: "Remote Pairing Scheduler", description: "Match devs for short pair-programming sessions with ephemeral workspaces." },
+  { name: "Personal Data Vault + Reporter", description: "Encrypted vault to store and share structured personal data." },
+  { name: "Event Micro-Experience Creator", description: "Create mini interactive pages (photo wall, poll, schedule) for events." }
+];
 
-        // console.log(data.projects[3].name);
-        const appIdeasList = document.getElementById('appIdeas');
-        appIdeasList.innerHTML = ''; // Clear existing list items
-        data.projects.forEach(idea => {
-            console.log(idea);
-            const listItem = document.createElement('li');
-            listItem.textContent = `${idea.name}, ${idea.description}`;
-            appIdeasList.appendChild(listItem);
-        });
-    })
-    .catch(error => console.error('Error fetching app ideas:', error));
+const appIdeasList = document.getElementById('appIdeas');
+
+function renderList(items) {
+  appIdeasList.innerHTML = '';
+  items.forEach(it => {
+    const li = document.createElement('li');
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'name';
+    nameSpan.textContent = it.name || it.title || 'Untitled';
+    const descSpan = document.createElement('span');
+    descSpan.className = 'desc';
+    descSpan.textContent = it.description || it.short_description || '';
+    li.appendChild(nameSpan);
+    li.appendChild(descSpan);
+    appIdeasList.appendChild(li);
+  });
+}
+
+// Try fetching remote JSON; if it fails, use fallbackIdeas
+fetch(FETCH_URL, { cache: 'no-store' })
+  .then(response => {
+    if (!response.ok) throw new Error('Network response not ok: ' + response.status);
+    return response.json();
+  })
+  .then(data => {
+    // Accept either data.projects (your original shape) or an array
+    const items = Array.isArray(data.projects) ? data.projects : (Array.isArray(data) ? data : (data.items || []));
+    if (items.length) {
+      renderList(items.map(i => ({ name: i.name || i.area || i.id, description: i.description || i.short_description || '' })));
+    } else {
+      // No items found in remote JSON -> show fallback
+      renderList(fallbackIdeas);
+    }
+  })
+  .catch(err => {
+    console.warn('Fetch failed, using fallback ideas:', err);
+    renderList(fallbackIdeas);
+  });
 
 </script>
 
 </body>
 </html>
-
